@@ -1,0 +1,37 @@
+name: Compile FNF to HTML5
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Haxe
+      uses: krdlab/setup-haxe@v1
+      with:
+        haxe-version: 4.3.3
+
+    - name: Install Haxe libraries
+      run: |
+        haxelib install lime --quiet
+        haxelib install openfl --quiet
+        haxelib install flixel --quiet
+        haxelib install flixel-addons --quiet
+        haxelib run lime setup -y
+
+    - name: Build HTML5
+      run: haxelib run lime build html5 -release
+        
+    - name: Upload HTML5 Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: fnf-html5-build
+        path: export/html5/bin/
+        retention-days: 7
