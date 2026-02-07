@@ -18,12 +18,60 @@ jobs:
       with:
         haxe-version: 4.3.3
 
-    - name: Install Haxe libraries
+    - name: Install Haxe libraries (core + FNF essentials)
+      shell: bash
       run: |
+        set -euo pipefail
+        echo "[INFO] Installing core Haxe libraries..."
+        
+        # Core OpenFL/Lime stack
         haxelib install lime --quiet
         haxelib install openfl --quiet
         haxelib install flixel --quiet
+        
+        # Flixel extras (required by most FNF mods)
         haxelib install flixel-addons --quiet
+        haxelib install flixel-ui --quiet
+        haxelib install flixel-tools --quiet || true
+        
+        # Common FNF dependencies
+        haxelib install newgrounds --quiet || true
+        haxelib install hxcpp --quiet || true
+        haxelib install hscript --quiet || true
+        haxelib install tjson --quiet || true
+        haxelib install polymod --quiet || true
+        haxelib install discord_rpc --quiet || true
+        haxelib install linc_luajit --quiet || true
+        haxelib install hxCodec --quiet || true
+        haxelib install extension-webm --quiet || true
+        haxelib install actuate --quiet || true
+        haxelib install box2d --quiet || true
+        
+        echo "[OK] Core libraries installed"
+
+    - name: Install project.xml dependencies
+      shell: bash
+      run: |
+        # Install any additional haxelibs declared in project.xml
+        if [ -f "project.xml" ]; then
+          echo "[INFO] Detected project.xml — installing declared haxelibs"
+          libs=$(perl -0777 -ne 'while(/<haxelib[[:space:]]+[^>]*name="([^"]+)"/g){print "$1
+"}' project.xml | sort -u)
+          if [ -n "$libs" ]; then
+            while IFS= read -r lib; do
+              [ -z "$lib" ] && continue
+              echo "[INFO] haxelib install $lib"
+              haxelib install "$lib" --quiet || {
+                echo "[WARN] Failed to install $lib (may be git/path-based or optional)";
+              }
+            done <<< "$libs"
+          else
+            echo "[INFO] No <haxelib name=...> entries found in project.xml"
+          fi
+        else
+          echo "[WARN] project.xml not found — cannot auto-install extra haxelibs"
+        fi
+
         haxelib run lime setup -y
 
     - name: Build HTML5
